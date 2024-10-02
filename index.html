@@ -53,7 +53,29 @@
 </head>
 
 <body>
-    <div id="result"></div>
+    <header>
+        <h1>JPEE</h1>
+        <div class="header-options">
+            <select id="semester">
+                <option value="2024ODDSEM">2024ODDSEM</option>
+            </select>
+            <input type="number" id="criteria" placeholder="Criteria" value="70" />
+        </div>
+    </header>
+
+    <main id="subject-container">
+        <!-- Subject cards will be dynamically inserted here -->
+    </main>
+
+    <footer>
+        <nav>
+            <button>Attendance</button>
+            <button>Grades</button>
+            <button>Exams</button>
+            <button>Subjects</button>
+        </nav>
+    </footer>
+
     <script type="text/javascript">
         async function main() {
             let pyodide = await loadPyodide();
@@ -65,7 +87,7 @@
                 from pyjiit.default import CAPTCHA
 
                 USERNAME = "22103171"
-                PASSWORD = "N5Sw64Nh56sfspC"
+                PASSWORD = "bFapzvDG63e@"
                 w = Webportal()
                 s = w.student_login(USERNAME, PASSWORD, CAPTCHA)
                 meta = w.get_attendance_meta()
@@ -78,13 +100,79 @@
             // Convert the Python object to a JavaScript object
             let attendanceJS = attendance.toJs();
 
-            // Display the result
-            document.getElementById('result').textContent = JSON.stringify(attendanceJS, null, 2);
-
             // You can now use attendanceJS in your JavaScript code
             console.log(attendanceJS);
 
-            
+            // Function to create and render subjects
+            function renderSubjects(subjects) {
+                const subjectContainer = document.getElementById('subject-container');
+                subjectContainer.innerHTML = '';  // Clear the container first
+
+                subjects.forEach(subject => {
+                    const subjectCard = document.createElement('div');
+                    subjectCard.classList.add('subject-card');
+
+                    const subjectTitle = document.createElement('h2');
+                    subjectTitle.textContent = subject.subjectcode;
+
+                    const attendanceDiv = document.createElement('div');
+                    attendanceDiv.classList.add('attendance');
+
+                    // Lecture Attendance
+                    if (subject.Lpercentage) {
+                        const lectureAttendance = document.createElement('p');
+                        lectureAttendance.textContent = `Lecture: ${subject.Lpercentage}%`;
+                        attendanceDiv.appendChild(lectureAttendance);
+                    }
+
+                    // Tutorial Attendance
+                    if (subject.Tpercentage) {
+                        const tutorialAttendance = document.createElement('p');
+                        tutorialAttendance.textContent = `Tutorial: ${subject.Tpercentage}%`;
+                        attendanceDiv.appendChild(tutorialAttendance);
+                    }
+
+                    // Practical Attendance
+                    if (subject.Ppercentage) {
+                        const practicalAttendance = document.createElement('p');
+                        practicalAttendance.textContent = `Practical: ${subject.Ppercentage}%`;
+                        attendanceDiv.appendChild(practicalAttendance);
+                    }
+
+                    // Circular Progress for Total
+                    const totalPercentage = subject.LTpercantage || subject.Ppercentage || 0;
+                    const progressDiv = document.createElement('div');
+                    progressDiv.classList.add('circular-progress');
+                    progressDiv.setAttribute('data-percent', totalPercentage);
+                    progressDiv.textContent = `${totalPercentage}%`;
+
+                    attendanceDiv.appendChild(progressDiv);
+
+                    subjectCard.appendChild(subjectTitle);
+                    subjectCard.appendChild(attendanceDiv);
+
+                    subjectContainer.appendChild(subjectCard);
+                });
+
+                // Update progress circles after rendering
+                updateProgressCircles();
+            }
+
+            // Function to update the circular progress bars
+            function updateProgressCircles() {
+                const progressCircles = document.querySelectorAll(".circular-progress");
+
+                progressCircles.forEach(circle => {
+                    const percent = circle.getAttribute("data-percent");
+                    circle.style.background = `conic-gradient(#3498db ${percent * 3.6}deg, #2c2f33 0deg)`;
+                    circle.innerHTML = `${percent}%`;
+                });
+            }
+
+            // Call the render function with the JSON data
+            renderSubjects(attendanceJS.studentattendancelist);
+
+
         }
         main();
     </script>
