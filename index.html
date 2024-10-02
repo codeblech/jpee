@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JIIT</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/circle.svg">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+</head>
+
+<script>
+    /* UPDATE PATHS TO POINT TO YOUR ASSETS */
+    const SERVICE_WORKER_PATH = "/sw.js";
+    const JSON_FILE_PATH = "./data.json";
+    /* IF USING MODULE-TYPE SERVICE WORKER, REPLACE THESE OPTIONS */
+    const REGISTRATION_OPTIONS = {
+        scope: "/",
+    };
+
+    async function registerServiceWorker() {
+        if ("serviceWorker" in navigator) {
+            try {
+                const registration = await navigator.serviceWorker.register(
+                    SERVICE_WORKER_PATH,
+                    REGISTRATION_OPTIONS,
+                );
+                if (registration.installing) {
+                    console.log("Service worker installing");
+                } else if (registration.waiting) {
+                    console.log("Service worker installed");
+                } else if (registration.active) {
+                    console.log("Service worker active");
+                }
+            } catch (error) {
+                console.error(`Registration failed with ${error}`);
+            }
+        }
+    }
+
+    async function fetchAndLogData() {
+        try {
+            console.log(await (await fetch(JSON_FILE_PATH)).json());
+        } catch (e) {
+            console.error("Failed to fetch", e);
+        }
+    }
+
+    // registerServiceWorker();
+</script>
+</head>
+
+<body>
+    <div id="result"></div>
+    <script type="text/javascript">
+        async function main() {
+            let pyodide = await loadPyodide();
+            await pyodide.loadPackage("micropip");
+            const micropip = pyodide.pyimport("micropip");
+            await micropip.install("pyjiit");
+            let attendance = await pyodide.runPythonAsync(`
+                from pyjiit import Webportal
+                from pyjiit.default import CAPTCHA
+
+                USERNAME = "22103171"
+                PASSWORD = "N5Sw64Nh56sfspC"
+                w = Webportal()
+                s = w.student_login(USERNAME, PASSWORD, CAPTCHA)
+                meta = w.get_attendance_meta()
+                header = meta.latest_header()
+                sem = meta.latest_semester()
+
+                attendance = w.get_attendance(header, sem)
+                attendance
+            `);
+            // Convert the Python object to a JavaScript object
+            let attendanceJS = attendance.toJs();
+
+            // Display the result
+            document.getElementById('result').textContent = JSON.stringify(attendanceJS, null, 2);
+
+            // You can now use attendanceJS in your JavaScript code
+            console.log(attendanceJS);
+
+            
+        }
+        main();
+    </script>
+</body>
+
+</html>
