@@ -6,50 +6,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JIIT</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/circle.svg">
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
-</head>
+    <script>
+        /* UPDATE PATHS TO POINT TO YOUR ASSETS */
+        const SERVICE_WORKER_PATH = "/sw.js";
+        const JSON_FILE_PATH = "./data.json";
+        /* IF USING MODULE-TYPE SERVICE WORKER, REPLACE THESE OPTIONS */
+        const REGISTRATION_OPTIONS = {
+            scope: "/",
+        };
 
-<script>
-    /* UPDATE PATHS TO POINT TO YOUR ASSETS */
-    const SERVICE_WORKER_PATH = "/sw.js";
-    const JSON_FILE_PATH = "./data.json";
-    /* IF USING MODULE-TYPE SERVICE WORKER, REPLACE THESE OPTIONS */
-    const REGISTRATION_OPTIONS = {
-        scope: "/",
-    };
-
-    async function registerServiceWorker() {
-        if ("serviceWorker" in navigator) {
-            try {
-                const registration = await navigator.serviceWorker.register(
-                    SERVICE_WORKER_PATH,
-                    REGISTRATION_OPTIONS,
-                );
-                if (registration.installing) {
-                    console.log("Service worker installing");
-                } else if (registration.waiting) {
-                    console.log("Service worker installed");
-                } else if (registration.active) {
-                    console.log("Service worker active");
+        async function registerServiceWorker() {
+            if ("serviceWorker" in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.register(
+                        SERVICE_WORKER_PATH,
+                        REGISTRATION_OPTIONS,
+                    );
+                    if (registration.installing) {
+                        console.log("Service worker installing");
+                    } else if (registration.waiting) {
+                        console.log("Service worker installed");
+                    } else if (registration.active) {
+                        console.log("Service worker active");
+                    }
+                } catch (error) {
+                    console.error(`Registration failed with ${error}`);
                 }
-            } catch (error) {
-                console.error(`Registration failed with ${error}`);
             }
         }
-    }
 
-    async function fetchAndLogData() {
-        try {
-            console.log(await (await fetch(JSON_FILE_PATH)).json());
-        } catch (e) {
-            console.error("Failed to fetch", e);
-        }
-    }
-
-    // registerServiceWorker();
-</script>
+        // registerServiceWorker();
+    </script>
 </head>
 
 <body>
@@ -63,8 +52,20 @@
         </div>
     </header>
 
-    <main id="subject-container">
-        <!-- Subject cards will be dynamically inserted here -->
+    <!-- Username and Password Form -->
+    <main>
+        <div id="login-form">
+            <form id="user-login-form">
+                <input type="text" id="username" placeholder="Enter Username" autocomplete="username" required />
+                <input type="password" id="password" placeholder="Enter Password" autocomplete="current-password"
+                    required />
+                <button type="submit" id="login-btn">Login</button>
+            </form>
+        </div>
+
+        <div id="subject-container" style="display: none;">
+            <!-- Subject cards will be dynamically inserted here -->
+        </div>
     </main>
 
     <footer>
@@ -77,30 +78,87 @@
     </footer>
 
     <script type="text/javascript">
+        // Function to save credentials in localStorage
+        function saveCredentials(username, password) {
+            localStorage.setItem("username", username);
+            localStorage.setItem("password", password);
+        }
+
+        // Function to get credentials from localStorage
+        function getCredentials() {
+            const username = localStorage.getItem("username");
+            const password = localStorage.getItem("password");
+            return { username, password };
+        }
+
+        // Function to check if credentials are already stored
+        function areCredentialsStored() {
+            const { username, password } = getCredentials();
+            return username && password;
+        }
+
+        // Function to display the login form or automatically login if credentials exist
+        function initializeLogin() {
+            const loginForm = document.getElementById('login-form');
+            const subjectContainer = document.getElementById('subject-container');
+
+            if (areCredentialsStored()) {
+                // Hide login form and display subject container
+                loginForm.style.display = 'none';
+                subjectContainer.style.display = 'block';
+                main();  // Proceed to main function since credentials are already stored
+            } else {
+                loginForm.style.display = 'block';
+                subjectContainer.style.display = 'none';
+            }
+
+            // Add event listener for form submission
+            document.getElementById('user-login-form').addEventListener('submit', function (event) {
+                event.preventDefault(); // Prevent form from refreshing the page
+
+                console.log("Login button clicked");
+
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+
+                if (username && password) {
+                    saveCredentials(username, password);
+                    loginForm.style.display = 'none';
+                    subjectContainer.style.display = 'block';
+                    main();  // Proceed to main function after storing credentials
+                } else {
+                    alert("Please enter both username and password.");
+                }
+            });
+        }
+
         async function main() {
             let pyodide = await loadPyodide();
             await pyodide.loadPackage("micropip");
             const micropip = pyodide.pyimport("micropip");
             await micropip.install("pyjiit");
+
             let attendance = await pyodide.runPythonAsync(`
                 from pyjiit import Webportal
                 from pyjiit.default import CAPTCHA
 
-                USERNAME = "22103171"
-                PASSWORD = "bFapzvDG63e@"
+                USERNAME = "${localStorage.getItem("username")}"
+                PASSWORD = "${localStorage.getItem("password")}"
                 w = Webportal()
+                print(w)
                 s = w.student_login(USERNAME, PASSWORD, CAPTCHA)
                 meta = w.get_attendance_meta()
                 header = meta.latest_header()
                 sem = meta.latest_semester()
 
                 attendance = w.get_attendance(header, sem)
+                print(attendance)
                 attendance
             `);
+
             // Convert the Python object to a JavaScript object
             let attendanceJS = attendance.toJs();
 
-            // You can now use attendanceJS in your JavaScript code
             console.log(attendanceJS);
 
             // Function to create and render subjects
@@ -171,10 +229,12 @@
 
             // Call the render function with the JSON data
             renderSubjects(attendanceJS.studentattendancelist);
-
-
         }
-        main();
+
+        // Initialize the login form and check for stored credentials after the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeLogin();
+        });
     </script>
 </body>
 
