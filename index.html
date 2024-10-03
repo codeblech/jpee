@@ -6,15 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JIIT</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/circle.svg">
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
     <script>
-        /* UPDATE PATHS TO POINT TO YOUR ASSETS */
-        const SERVICE_WORKER_PATH = "/sw.js";
-        const JSON_FILE_PATH = "./data.json";
-        /* IF USING MODULE-TYPE SERVICE WORKER, REPLACE THESE OPTIONS */
+        const SERVICE_WORKER_PATH = "sw.js";
         const REGISTRATION_OPTIONS = {
-            scope: "/",
+            scope: "/jpee/",
         };
 
         async function registerServiceWorker() {
@@ -37,7 +35,7 @@
             }
         }
 
-        // registerServiceWorker();
+        registerServiceWorker();
     </script>
 </head>
 
