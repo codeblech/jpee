@@ -2,6 +2,12 @@ import { CalendarDays, UserRound } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const datePattern = /\d{1,2}-[A-Za-z]{3}-\d{4}\s+\d{1,2}:\d{2}\s+[AP]M/;
+const standardStages = [
+  "Choice Submitted",
+  "Review by Dept. MOOC Coordinator",
+  "Finalized by MOOC Coordinator",
+  "Final Allocation",
+];
 
 function parseStage(raw, index) {
   const [text, status = ""] = raw.split("@");
@@ -51,9 +57,19 @@ export default function MoocStatus({ moocStatus }) {
       </div>
 
       {subjects.map((subject) => {
-        const stages = subject.totalStages
-          .filter(Boolean)
-          .map((stage, index) => parseStage(stage, index));
+        const stageNames = moocStatus.onlyapprovedbyvc === "Y"
+          ? [standardStages[0], standardStages[3]]
+          : standardStages;
+        const stages = stageNames.map((title, index) => {
+          const raw = subject.totalStages?.[index];
+          return raw ? { ...parseStage(raw, index), title } : {
+            index,
+            status: "",
+            date: null,
+            coordinator: null,
+            title,
+          };
+        });
 
         return (
           <Card key={subject.subjectid} className="overflow-hidden shadow-lg">
@@ -92,6 +108,7 @@ export default function MoocStatus({ moocStatus }) {
                   <div className="min-w-0 flex-1 pb-1">
                     <p className="text-sm font-medium text-card-foreground">{stage.title}</p>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+                      <span>{stage.status === "D" ? "Completed" : "Pending"}</span>
                       {stage.date && (
                         <span className="inline-flex items-center gap-1.5">
                           <CalendarDays className="h-3.5 w-3.5" />
