@@ -47,6 +47,9 @@ function AuthenticatedApp({ w, setIsAuthenticated, setIsDemoMode }) {
   const [subjectChoicesLoading, setSubjectChoicesLoading] = useState(false);
   const [moocStatusData, setMoocStatusData] = useState({});
   const [moocStatusLoading, setMoocStatusLoading] = useState(false);
+  const [addDropStatusData, setAddDropStatusData] = useState({});
+  const [addDropStatusLoading, setAddDropStatusLoading] = useState(false);
+  const [addDropStatusError, setAddDropStatusError] = useState(null);
 
   const [gradesData, setGradesData] = useState({});
   const [gradesSemesterData, setGradesSemesterData] = useState(null);
@@ -252,6 +255,12 @@ function AuthenticatedApp({ w, setIsAuthenticated, setIsDemoMode }) {
               setMoocStatusData={setMoocStatusData}
               moocStatusLoading={moocStatusLoading}
               setMoocStatusLoading={setMoocStatusLoading}
+              addDropStatusData={addDropStatusData}
+              setAddDropStatusData={setAddDropStatusData}
+              addDropStatusLoading={addDropStatusLoading}
+              setAddDropStatusLoading={setAddDropStatusLoading}
+              addDropStatusError={addDropStatusError}
+              setAddDropStatusError={setAddDropStatusError}
             />
           }
         />

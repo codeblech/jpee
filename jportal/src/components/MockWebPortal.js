@@ -164,4 +164,22 @@ export default class MockWebPortal {
     };
   }
 
+  async get_add_drop_status_semesters() {
+    return [{ registrationid: "JIRUM26040000001", registrationcode: "2026ODDSEM", registrationdesc: "2026ODDSEM" }];
+  }
+
+  async get_add_drop_status() {
+    return {
+      lockFlag: false,
+      totalsubjectDetailList: [{
+        subjectid: "ADD-DROP-001",
+        subjectcode: "26B14CS354",
+        subjectdesc: "SCALABLE DATA SCIENCE",
+        choicetype: "Add request against an elective allocation",
+        totalStages: ["Submitted on 25-Jul-2026 03:42 PM@D", "1. Review Date:- 03-Aug-2026 01:05 PM by TIMETABLE COMMITTEE@D", "2. Approved Date:- 05-Aug-2026 10:25 AM by HOD@D"],
+      }],
+      subjectListrejected: [],
+    };
+  }
+
 }

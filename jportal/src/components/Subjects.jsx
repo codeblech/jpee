@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import SubjectInfoCard from "./SubjectInfoCard";
 import MoocStatus from "./MoocStatus";
+import AddDropStatus from "./AddDropStatus";
 import {
   Select,
   SelectContent,
@@ -31,11 +32,20 @@ export default function Subjects({
   moocStatusData,
   setMoocStatusData,
   moocStatusLoading,
-  setMoocStatusLoading
+  setMoocStatusLoading,
+  addDropStatusData,
+  setAddDropStatusData,
+  addDropStatusLoading,
+  setAddDropStatusLoading,
+  addDropStatusError,
+  setAddDropStatusError
 }) {
   const isChoicesTab = activeTab === "choices";
   const isMoocTab = activeTab === "mooc";
-  const displayedSemesters = isMoocTab
+  const isAddDropTab = activeTab === "add-drop";
+  const displayedSemesters = isAddDropTab
+    ? semestersData?.add_drop_semesters
+    : isMoocTab
     ? semestersData?.mooc_semesters
     : isChoicesTab
       ? semestersData?.choice_semesters
@@ -47,9 +57,12 @@ export default function Subjects({
     const fetchSubjectsForTab = async () => {
       const isChoicesTab = activeTab === "choices";
       const isMoocTab = activeTab === "mooc";
+      const isAddDropTab = activeTab === "add-drop";
 
       try {
-        let semesterList = isMoocTab
+        let semesterList = isAddDropTab
+          ? semestersData?.add_drop_semesters
+          : isMoocTab
           ? semestersData?.mooc_semesters
           : isChoicesTab
             ? semestersData?.choice_semesters
@@ -57,7 +70,15 @@ export default function Subjects({
 
         if (!semesterList) {
           setLoading(true);
-          if (isMoocTab) {
+          if (isAddDropTab) {
+            setAddDropStatusError(null);
+            const addDropSemesters = await w.get_add_drop_status_semesters();
+            semesterList = addDropSemesters.map((semester) => ({
+              registration_id: semester.registrationid,
+              registration_code: semester.registrationcode,
+              registration_desc: semester.registrationdesc,
+            }));
+          } else if (isMoocTab) {
             const moocSemesters = await w.get_mooc_subject_status_semesters();
             semesterList = moocSemesters.map((semester) => ({
               registration_id: semester.registrationid,
@@ -74,14 +95,16 @@ export default function Subjects({
 
           setSemestersData(prev => ({
             ...prev,
-            semesters: prev?.semesters || (!isChoicesTab && !isMoocTab ? semesterList : undefined),
-            latest_semester: prev?.latest_semester || (!isChoicesTab && !isMoocTab ? semesterList[0] : undefined),
-            registered_semesters: !isChoicesTab && !isMoocTab ? semesterList : prev?.registered_semesters,
-            latest_registered_semester: !isChoicesTab && !isMoocTab ? semesterList[0] : prev?.latest_registered_semester,
+            semesters: prev?.semesters || (!isChoicesTab && !isMoocTab && !isAddDropTab ? semesterList : undefined),
+            latest_semester: prev?.latest_semester || (!isChoicesTab && !isMoocTab && !isAddDropTab ? semesterList[0] : undefined),
+            registered_semesters: !isChoicesTab && !isMoocTab && !isAddDropTab ? semesterList : prev?.registered_semesters,
+            latest_registered_semester: !isChoicesTab && !isMoocTab && !isAddDropTab ? semesterList[0] : prev?.latest_registered_semester,
             choice_semesters: isChoicesTab ? semesterList : prev?.choice_semesters,
             latest_choice_semester: isChoicesTab ? semesterList[0] : prev?.latest_choice_semester,
             mooc_semesters: isMoocTab ? semesterList : prev?.mooc_semesters,
             latest_mooc_semester: isMoocTab ? semesterList[0] : prev?.latest_mooc_semester,
+            add_drop_semesters: isAddDropTab ? semesterList : prev?.add_drop_semesters,
+            latest_add_drop_semester: isAddDropTab ? semesterList[0] : prev?.latest_add_drop_semester,
           }));
         }
 
@@ -94,7 +117,17 @@ export default function Subjects({
           setSelectedSem(semester);
         }
 
-        if (isMoocTab) {
+        if (isAddDropTab) {
+          if (!addDropStatusData?.[semester.registration_id]) {
+            setAddDropStatusLoading(true);
+            const data = await w.get_add_drop_status(semester);
+            if (cancelled) return;
+            setAddDropStatusData(prev => ({
+              ...prev,
+              [semester.registration_id]: data
+            }));
+          }
+        } else if (isMoocTab) {
           if (!moocStatusData?.[semester.registration_id]) {
             setMoocStatusLoading(true);
             const data = await w.get_mooc_subject_status(semester);
@@ -125,12 +158,20 @@ export default function Subjects({
         }
       } catch (err) {
         console.error(err);
+        if (isAddDropTab) {
+          setAddDropStatusError(
+            err.message.includes("No Regeistration Event found!")
+              ? "No add/drop registration event is currently available."
+              : "Unable to load add/drop status right now."
+          );
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
           setSubjectsLoading(false);
           setChoicesLoading(false);
           setMoocStatusLoading(false);
+          setAddDropStatusLoading(false);
         }
       }
     };
@@ -148,6 +189,7 @@ export default function Subjects({
     subjectData,
     subjectChoices,
     moocStatusData,
+    addDropStatusData,
     setLoading,
     setSubjectsLoading,
     setChoicesLoading,
@@ -157,13 +199,19 @@ export default function Subjects({
     setSubjectChoices,
     setMoocStatusData,
     setMoocStatusLoading,
+    setAddDropStatusData,
+    setAddDropStatusLoading,
+    setAddDropStatusError,
   ]);
 
   const handleSemesterChange = async (value) => {
     const isChoicesTab = activeTab === "choices";
     const isMoocTab = activeTab === "mooc";
+    const isAddDropTab = activeTab === "add-drop";
 
-    if (isMoocTab) {
+    if (isAddDropTab) {
+      setAddDropStatusLoading(true);
+    } else if (isMoocTab) {
       setMoocStatusLoading(true);
     } else if (isChoicesTab) {
       setChoicesLoading(true);
@@ -177,6 +225,18 @@ export default function Subjects({
       if (!semester) return;
 
       setSelectedSem(semester);
+
+      if (isAddDropTab) {
+        setAddDropStatusError(null);
+        if (!addDropStatusData?.[semester.registration_id]) {
+          const data = await w.get_add_drop_status(semester);
+          setAddDropStatusData(prev => ({
+            ...prev,
+            [semester.registration_id]: data
+          }));
+        }
+        return;
+      }
 
       if (isMoocTab) {
         if (!moocStatusData?.[semester.registration_id]) {
@@ -213,16 +273,21 @@ export default function Subjects({
       }
     } catch (err) {
       console.error(err);
+      if (isAddDropTab) {
+        setAddDropStatusError("Unable to load add/drop status right now.");
+      }
     } finally {
       setSubjectsLoading(false);
       setChoicesLoading(false);
       setMoocStatusLoading(false);
+      setAddDropStatusLoading(false);
     }
   };
 
   const currentSubjects = selectedSem && subjectData?.[selectedSem.registration_id];
   const currentChoices = selectedSem && subjectChoices?.[selectedSem.registration_id];
   const currentMoocStatus = selectedSem && moocStatusData?.[selectedSem.registration_id];
+  const currentAddDropStatus = selectedSem && addDropStatusData?.[selectedSem.registration_id];
   const groupedSubjects = currentSubjects?.subjects?.reduce((acc, subject) => {
     const baseCode = subject.subject_code;
     if (!acc[baseCode]) {
@@ -263,7 +328,7 @@ export default function Subjects({
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="px-3 pb-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 bg-background sm:grid-cols-3">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 bg-background sm:grid-cols-4">
           <TabsTrigger
             value="registered"
             className="cursor-pointer text-muted-foreground bg-background data-[state=active]:bg-muted data-[state=active]:text-foreground"
@@ -281,6 +346,12 @@ export default function Subjects({
             className="cursor-pointer text-muted-foreground bg-background data-[state=active]:bg-muted data-[state=active]:text-foreground"
           >
             MOOC Status
+          </TabsTrigger>
+          <TabsTrigger
+            value="add-drop"
+            className="cursor-pointer text-muted-foreground bg-background data-[state=active]:bg-muted data-[state=active]:text-foreground"
+          >
+            Add/Drop Status
           </TabsTrigger>
         </TabsList>
 
@@ -405,6 +476,20 @@ export default function Subjects({
             </div>
           ) : (
             <MoocStatus moocStatus={currentMoocStatus} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="add-drop">
+          {addDropStatusError ? (
+            <div className="flex items-center justify-center py-12 text-center text-muted-foreground">
+              {addDropStatusError}
+            </div>
+          ) : addDropStatusLoading ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              Loading add/drop status...
+            </div>
+          ) : (
+            <AddDropStatus addDropStatus={currentAddDropStatus} />
           )}
         </TabsContent>
 

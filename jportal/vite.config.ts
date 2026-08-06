@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
           enabled: true,
         },
         workbox: {
+          cacheId: "jportal-v2",
           maximumFileSizeToCacheInBytes: 30 * 1024 ** 2, // 30MB
           globPatterns: ["**/*.{js,css,html,ico,png,svg,whl}"],
           runtimeCaching: [
@@ -94,6 +95,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      allowedHosts: [".ngrok-free.app"],
       proxy: {
         "/api/cloudflare": {
           target: "https://api.cloudflare.com",
