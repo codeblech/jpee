@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import SubjectInfoCard from "./SubjectInfoCard";
+import MoocStatus from "./MoocStatus";
 import {
   Select,
   SelectContent,
@@ -26,39 +27,61 @@ export default function Subjects({
   subjectsLoading,
   setSubjectsLoading,
   choicesLoading,
-  setChoicesLoading
+  setChoicesLoading,
+  moocStatusData,
+  setMoocStatusData,
+  moocStatusLoading,
+  setMoocStatusLoading
 }) {
-  const displayedSemesters = activeTab === "choices"
-    ? semestersData?.choice_semesters
-    : semestersData?.registered_semesters || semestersData?.semesters;
+  const isChoicesTab = activeTab === "choices";
+  const isMoocTab = activeTab === "mooc";
+  const displayedSemesters = isMoocTab
+    ? semestersData?.mooc_semesters
+    : isChoicesTab
+      ? semestersData?.choice_semesters
+      : semestersData?.registered_semesters || semestersData?.semesters;
 
   useEffect(() => {
     let cancelled = false;
 
     const fetchSubjectsForTab = async () => {
       const isChoicesTab = activeTab === "choices";
+      const isMoocTab = activeTab === "mooc";
 
       try {
-        let semesterList = isChoicesTab
-          ? semestersData?.choice_semesters
-          : semestersData?.registered_semesters || semestersData?.semesters;
+        let semesterList = isMoocTab
+          ? semestersData?.mooc_semesters
+          : isChoicesTab
+            ? semestersData?.choice_semesters
+            : semestersData?.registered_semesters || semestersData?.semesters;
 
         if (!semesterList) {
           setLoading(true);
-          semesterList = isChoicesTab && w.get_semesters_for_grade_card
-            ? await w.get_semesters_for_grade_card()
-            : await w.get_registered_semesters();
+          if (isMoocTab) {
+            const moocSemesters = await w.get_mooc_subject_status_semesters();
+            semesterList = moocSemesters.map((semester) => ({
+              registration_id: semester.registrationid,
+              registration_code: semester.registrationcode,
+              registration_desc: semester.registrationdesc,
+            }));
+          } else {
+            semesterList = isChoicesTab && w.get_semesters_for_grade_card
+              ? await w.get_semesters_for_grade_card()
+              : await w.get_registered_semesters();
+          }
 
           if (cancelled) return;
 
           setSemestersData(prev => ({
             ...prev,
-            semesters: prev?.semesters || (!isChoicesTab ? semesterList : undefined),
-            latest_semester: prev?.latest_semester || (!isChoicesTab ? semesterList[0] : undefined),
-            registered_semesters: !isChoicesTab ? semesterList : prev?.registered_semesters,
-            latest_registered_semester: !isChoicesTab ? semesterList[0] : prev?.latest_registered_semester,
+            semesters: prev?.semesters || (!isChoicesTab && !isMoocTab ? semesterList : undefined),
+            latest_semester: prev?.latest_semester || (!isChoicesTab && !isMoocTab ? semesterList[0] : undefined),
+            registered_semesters: !isChoicesTab && !isMoocTab ? semesterList : prev?.registered_semesters,
+            latest_registered_semester: !isChoicesTab && !isMoocTab ? semesterList[0] : prev?.latest_registered_semester,
             choice_semesters: isChoicesTab ? semesterList : prev?.choice_semesters,
             latest_choice_semester: isChoicesTab ? semesterList[0] : prev?.latest_choice_semester,
+            mooc_semesters: isMoocTab ? semesterList : prev?.mooc_semesters,
+            latest_mooc_semester: isMoocTab ? semesterList[0] : prev?.latest_mooc_semester,
           }));
         }
 
@@ -71,7 +94,17 @@ export default function Subjects({
           setSelectedSem(semester);
         }
 
-        if (isChoicesTab) {
+        if (isMoocTab) {
+          if (!moocStatusData?.[semester.registration_id]) {
+            setMoocStatusLoading(true);
+            const data = await w.get_mooc_subject_status(semester);
+            if (cancelled) return;
+            setMoocStatusData(prev => ({
+              ...prev,
+              [semester.registration_id]: data
+            }));
+          }
+        } else if (isChoicesTab) {
           if (!subjectChoices?.[semester.registration_id]) {
             setChoicesLoading(true);
             const choicesData = await w.get_subject_choices(semester);
@@ -97,6 +130,7 @@ export default function Subjects({
           setLoading(false);
           setSubjectsLoading(false);
           setChoicesLoading(false);
+          setMoocStatusLoading(false);
         }
       }
     };
@@ -113,6 +147,7 @@ export default function Subjects({
     selectedSem,
     subjectData,
     subjectChoices,
+    moocStatusData,
     setLoading,
     setSubjectsLoading,
     setChoicesLoading,
@@ -120,12 +155,17 @@ export default function Subjects({
     setSemestersData,
     setSubjectData,
     setSubjectChoices,
+    setMoocStatusData,
+    setMoocStatusLoading,
   ]);
 
   const handleSemesterChange = async (value) => {
     const isChoicesTab = activeTab === "choices";
+    const isMoocTab = activeTab === "mooc";
 
-    if (isChoicesTab) {
+    if (isMoocTab) {
+      setMoocStatusLoading(true);
+    } else if (isChoicesTab) {
       setChoicesLoading(true);
     } else {
       setSubjectsLoading(true);
@@ -137,6 +177,17 @@ export default function Subjects({
       if (!semester) return;
 
       setSelectedSem(semester);
+
+      if (isMoocTab) {
+        if (!moocStatusData?.[semester.registration_id]) {
+          const data = await w.get_mooc_subject_status(semester);
+          setMoocStatusData(prev => ({
+            ...prev,
+            [semester.registration_id]: data
+          }));
+        }
+        return;
+      }
 
       if (isChoicesTab) {
         if (!subjectChoices?.[semester.registration_id]) {
@@ -165,11 +216,13 @@ export default function Subjects({
     } finally {
       setSubjectsLoading(false);
       setChoicesLoading(false);
+      setMoocStatusLoading(false);
     }
   };
 
   const currentSubjects = selectedSem && subjectData?.[selectedSem.registration_id];
   const currentChoices = selectedSem && subjectChoices?.[selectedSem.registration_id];
+  const currentMoocStatus = selectedSem && moocStatusData?.[selectedSem.registration_id];
   const groupedSubjects = currentSubjects?.subjects?.reduce((acc, subject) => {
     const baseCode = subject.subject_code;
     if (!acc[baseCode]) {
@@ -210,7 +263,7 @@ export default function Subjects({
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="px-3 pb-4">
-        <TabsList className="grid grid-cols-2 bg-background gap-3">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 bg-background sm:grid-cols-3">
           <TabsTrigger
             value="registered"
             className="cursor-pointer text-muted-foreground bg-background data-[state=active]:bg-muted data-[state=active]:text-foreground"
@@ -222,6 +275,12 @@ export default function Subjects({
             className="cursor-pointer text-muted-foreground bg-background data-[state=active]:bg-muted data-[state=active]:text-foreground"
           >
             Choices
+          </TabsTrigger>
+          <TabsTrigger
+            value="mooc"
+            className="cursor-pointer text-muted-foreground bg-background data-[state=active]:bg-muted data-[state=active]:text-foreground"
+          >
+            MOOC Status
           </TabsTrigger>
         </TabsList>
 
@@ -338,6 +397,17 @@ export default function Subjects({
               </div>
             )}
         </TabsContent>
+
+        <TabsContent value="mooc">
+          {moocStatusLoading ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              Loading MOOC status...
+            </div>
+          ) : (
+            <MoocStatus moocStatus={currentMoocStatus} />
+          )}
+        </TabsContent>
+
       </Tabs>
     </div>
   );
