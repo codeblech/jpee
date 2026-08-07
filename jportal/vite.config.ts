@@ -24,7 +24,6 @@ export default defineConfig(({ mode }) => {
           enabled: true,
         },
         workbox: {
-          cacheId: "jportal-v2",
           maximumFileSizeToCacheInBytes: 30 * 1024 ** 2, // 30MB
           globPatterns: ["**/*.{js,css,html,ico,png,svg,whl}"],
           runtimeCaching: [
@@ -93,9 +92,8 @@ export default defineConfig(({ mode }) => {
         // Vite 7 can miss the older package entry metadata here, so pin the ESM build explicitly.
         "lucide-react": path.resolve(__dirname, "./node_modules/lucide-react/dist/esm/lucide-react.js"),
       },
-    },
+    }
     server: {
-      allowedHosts: [".ngrok-free.app"],
       proxy: {
         "/api/cloudflare": {
           target: "https://api.cloudflare.com",
