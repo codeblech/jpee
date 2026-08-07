@@ -133,4 +133,53 @@ export default class MockWebPortal {
   async get_registered_semesters() {
     return fakeData.subjects.semestersData.semesters;
   }
+
+  async get_mooc_subject_status_semesters() {
+    return [
+      {
+        registrationid: "JIRUM26040000001",
+        registrationcode: "2026ODDSEM",
+        registrationdesc: "2026ODDSEM",
+      },
+    ];
+  }
+
+  async get_mooc_subject_status() {
+    return {
+      lockFlag: false,
+      duesAmount: 0,
+      onlyapprovedbyvc: "N",
+      totalsubjectDetailList: [
+        {
+          subjectid: "MOOC-001",
+          subjectcode: "26B14CS354",
+          subjectdesc: "SCALABLE DATA SCIENCE",
+          choicetype: "CURRENT Against (26B12CS319-FUNDAMENTALS OF SENSOR TECHNOLOGY AND ANDROID PROGRAMMING)",
+          totalStages: [
+            "Submitted on 25-Jul-2026 03:42 PM@D",
+            "1. Review Date:- 03-Aug-2026 01:05 PM by PRATIK SHRIVASTAVA (REVIEW BY MOOCD)@D",
+          ],
+        },
+      ],
+    };
+  }
+
+  async get_add_drop_status_semesters() {
+    return [{ registrationid: "JIRUM26040000001", registrationcode: "2026ODDSEM", registrationdesc: "2026ODDSEM" }];
+  }
+
+  async get_add_drop_status() {
+    return {
+      lockFlag: false,
+      totalsubjectDetailList: [{
+        subjectid: "ADD-DROP-001",
+        subjectcode: "26B14CS354",
+        subjectdesc: "SCALABLE DATA SCIENCE",
+        choicetype: "Add request against an elective allocation",
+        totalStages: ["Submitted on 25-Jul-2026 03:42 PM@D", "1. Review Date:- 03-Aug-2026 01:05 PM by TIMETABLE COMMITTEE@D", "2. Approved Date:- 05-Aug-2026 10:25 AM by HOD@D"],
+      }],
+      subjectListrejected: [],
+    };
+  }
+
 }

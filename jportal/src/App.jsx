@@ -15,7 +15,7 @@ import { DynamicFontLoader } from "./components/DynamicFontLoader";
 import { Toaster } from "./components/ui/sonner";
 import "./App.css";
 
-import { WebPortal, LoginError } from "https://cdn.jsdelivr.net/npm/jsjiit@0.0.27/dist/jsjiit.esm.js";
+import { WebPortal, LoginError } from "https://cdn.jsdelivr.net/npm/jsjiit@0.0.28/dist/jsjiit.esm.js";
 
 import MockWebPortal from "./components/MockWebPortal";
 import { TriangleAlert } from "lucide-react";
@@ -45,6 +45,11 @@ function AuthenticatedApp({ w, setIsAuthenticated, setIsDemoMode }) {
   const [subjectsLoading, setSubjectsLoading] = useState(true);
   const [subjectsDataLoading, setSubjectsDataLoading] = useState(true);
   const [subjectChoicesLoading, setSubjectChoicesLoading] = useState(false);
+  const [moocStatusData, setMoocStatusData] = useState({});
+  const [moocStatusLoading, setMoocStatusLoading] = useState(false);
+  const [addDropStatusData, setAddDropStatusData] = useState({});
+  const [addDropStatusLoading, setAddDropStatusLoading] = useState(false);
+  const [addDropStatusError, setAddDropStatusError] = useState(null);
 
   const [gradesData, setGradesData] = useState({});
   const [gradesSemesterData, setGradesSemesterData] = useState(null);
@@ -246,6 +251,16 @@ function AuthenticatedApp({ w, setIsAuthenticated, setIsDemoMode }) {
               setSubjectsLoading={setSubjectsDataLoading}
               choicesLoading={subjectChoicesLoading}
               setChoicesLoading={setSubjectChoicesLoading}
+              moocStatusData={moocStatusData}
+              setMoocStatusData={setMoocStatusData}
+              moocStatusLoading={moocStatusLoading}
+              setMoocStatusLoading={setMoocStatusLoading}
+              addDropStatusData={addDropStatusData}
+              setAddDropStatusData={setAddDropStatusData}
+              addDropStatusLoading={addDropStatusLoading}
+              setAddDropStatusLoading={setAddDropStatusLoading}
+              addDropStatusError={addDropStatusError}
+              setAddDropStatusError={setAddDropStatusError}
             />
           }
         />
